@@ -41,3 +41,12 @@ make
 make test
 make install
 ```
+
+1. Example 1: [python/PyDemoApp.py](python/PyDemoApp.py)
+2. Example 2: [python/MultiLinguisticApp.py](python/MultiLinguisticApp.py)
+3. Example 3: mini-search engine lupyne
+
+```bash
+pip install lupyne[graphql,rest]
+```
+

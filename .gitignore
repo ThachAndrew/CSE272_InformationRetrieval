@@ -33,3 +33,4 @@ build
 .idea/
 dist/
 build/
+.vscode/
