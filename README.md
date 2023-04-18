@@ -42,11 +42,10 @@ make test
 make install
 ```
 
-1. Example 1: [python/PyDemoApp.py](python/PyDemoApp.py)
-2. Example 2: [python/MultiLinguisticApp.py](python/MultiLinguisticApp.py)
-3. Example 3: mini-search engine lupyne
+1. Example 1: [HW1/python/PyDemoApp.py](HW1/python/PyDemoApp.py)
+2. Example 2: [HW1/python/MultiLinguisticApp.py](HW1/python/MultiLinguisticApp.py)
+3. Example 3: mini-search engine lupyne [HW1/python/MultiLinguisticApp.py](HW1/python/MultiLinguisticApp.py)
 
 ```bash
 pip install lupyne[graphql,rest]
 ```
-
