@@ -4,6 +4,12 @@
 
 You can use Java Lucene or PyLucene to finish your homework 1. 
 
+### Your TODOs are included but not restricted as follow:
+
+1. Index file and finish query parts
+2. Try with different tokenization pipeline: use stop words or not, stemming, how to handle capitalization, etc.
+3. Build up metrics for evaluation
+
 ### Java Lucene shown in subfolder [HW1/java](HW1/java)
 
 This subfolder use gradle for compiling code and you can directly launch via Intellj.
