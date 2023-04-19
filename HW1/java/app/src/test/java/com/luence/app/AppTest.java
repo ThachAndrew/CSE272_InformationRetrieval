@@ -3,12 +3,16 @@
  */
 package com.luence.app;
 
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.junit.Test;
+
+import java.io.IOException;
+
 import static org.junit.Assert.*;
 
 public class AppTest {
-    @Test public void appHasAGreeting() {
-        App classUnderTest = new App();
-        assertNotNull("app should have a greeting", classUnderTest.getGreeting());
+    @Test public void appHasAGreeting() throws IOException {
+        StandardAnalyzer analyzer = new StandardAnalyzer();
+        assertNotNull("index shouldn't be null", App.index(analyzer));
     }
 }

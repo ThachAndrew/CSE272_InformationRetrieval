@@ -35,23 +35,30 @@ public class App {
         w.addDocument(doc);
     }
 
-    public static void main(String[] args) throws IOException, ParseException {
-        StandardAnalyzer analyzer = new StandardAnalyzer();
+    static Directory index(StandardAnalyzer analyzer)  throws IOException {
         Directory index = new ByteBuffersDirectory();
 
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
 
         try (IndexWriter w = new IndexWriter(index, config)) {
+//        IndexWriter w = new IndexWriter(index, config);
             addDoc(w, "Lucene in Action", "193398817");
             addDoc(w, "Lucene for Dummies", "55320055Z");
             addDoc(w, "Managing Gigabytes", "55063554A");
             addDoc(w, "The Art of Computer Science", "9900333X");
+//            w.close();
         }
+        return index;
+    }
+
+    public static void main(String[] args) throws IOException, ParseException {
+        StandardAnalyzer analyzer = new StandardAnalyzer();
 
         String querystr = args.length > 0 ? args[0] : "lucene";
         Query q = new QueryParser("title", analyzer).parse(querystr);
 
         int hitsPerPage = 10;
+        Directory index = index(analyzer);
         IndexReader reader = DirectoryReader.open(index);
         IndexSearcher searcher = new IndexSearcher(reader);
         TopDocs docs = searcher.search(q, hitsPerPage);
