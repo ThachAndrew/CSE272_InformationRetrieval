@@ -20,8 +20,10 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.NIOFSDirectory;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 
 /**
  * refer to <a href="https://www.lucenetutorial.com/lucene-in-5-minutes.html"/>
@@ -36,10 +38,11 @@ public class App {
     }
 
     static Directory index(StandardAnalyzer analyzer)  throws IOException {
-        Directory index = new ByteBuffersDirectory();
-
+        //see: store into disk
+        Directory index = new NIOFSDirectory(Paths.get("<your file index location>"));
+//see: in-memory index
+//        Directory index = new ByteBuffersDirectory();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
-
         try (IndexWriter w = new IndexWriter(index, config)) {
 //        IndexWriter w = new IndexWriter(index, config);
             addDoc(w, "Lucene in Action", "193398817");
