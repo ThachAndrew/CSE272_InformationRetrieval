@@ -38,7 +38,7 @@ public class App {
     }
 
     static Directory index(StandardAnalyzer analyzer)  throws IOException {
-        //see: store into disk
+//see: on-disk index
         Directory index = new NIOFSDirectory(Paths.get("<your file index location>"));
 //see: in-memory index
 //        Directory index = new ByteBuffersDirectory();
