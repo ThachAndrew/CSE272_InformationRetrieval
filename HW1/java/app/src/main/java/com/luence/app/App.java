@@ -8,17 +8,10 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
 
@@ -27,8 +20,11 @@ import java.nio.file.Paths;
 
 /**
  * refer to <a href="https://www.lucenetutorial.com/lucene-in-5-minutes.html"/>
+ * A more comprehensive implementation, please check <a href="http://www.java2s.com/example/java-api/org/apache/lucene/search/indexsearcher/setsimilarity-1-1.html"/>
  */
 public class App {
+
+    private static CustomTFIDFSimilarity similarity = new CustomTFIDFSimilarity();
 
     private static void addDoc(IndexWriter w, String title, String isbn) throws IOException {
         Document doc = new Document();
@@ -43,6 +39,7 @@ public class App {
 //see: in-memory index
 //        Directory index = new ByteBuffersDirectory();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
+        config.setSimilarity(similarity);
         try (IndexWriter w = new IndexWriter(index, config)) {
 //        IndexWriter w = new IndexWriter(index, config);
             addDoc(w, "Lucene in Action", "193398817");
@@ -64,6 +61,7 @@ public class App {
         Directory index = index(analyzer);
         IndexReader reader = DirectoryReader.open(index);
         IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setSimilarity(similarity);
         TopDocs docs = searcher.search(q, hitsPerPage);
         ScoreDoc[] hits = docs.scoreDocs;
 
