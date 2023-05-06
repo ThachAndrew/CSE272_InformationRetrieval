@@ -34,19 +34,19 @@ public class App {
     }
 
     static Directory index(StandardAnalyzer analyzer)  throws IOException {
-//see: on-disk index
+        // see: on-disk index
         Directory index = new NIOFSDirectory(Paths.get("<your file index location>"));
-//see: in-memory index
-//        Directory index = new ByteBuffersDirectory();
+        // see: in-memory index
+        // Directory index = new ByteBuffersDirectory();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         config.setSimilarity(similarity);
         try (IndexWriter w = new IndexWriter(index, config)) {
-//        IndexWriter w = new IndexWriter(index, config);
+            // IndexWriter w = new IndexWriter(index, config);
             addDoc(w, "Lucene in Action", "193398817");
             addDoc(w, "Lucene for Dummies", "55320055Z");
             addDoc(w, "Managing Gigabytes", "55063554A");
             addDoc(w, "The Art of Computer Science", "9900333X");
-//            w.close();
+            // w.close();
         }
         return index;
     }
