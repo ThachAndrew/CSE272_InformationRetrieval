@@ -35,9 +35,9 @@ public class App {
 
     static Directory index(StandardAnalyzer analyzer)  throws IOException {
         // see: on-disk index
-        Directory index = new NIOFSDirectory(Paths.get("<your file index location>"));
+        // Directory index = new NIOFSDirectory(Paths.get("<your file index location>"));
         // see: in-memory index
-        // Directory index = new ByteBuffersDirectory();
+        Directory index = new ByteBuffersDirectory();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         config.setSimilarity(similarity);
         try (IndexWriter w = new IndexWriter(index, config)) {
