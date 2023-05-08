@@ -14,9 +14,13 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
+import org.apache.lucene.store.ByteBuffersDirectory;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.io.File;
 
 /**
  * refer to <a href="https://www.lucenetutorial.com/lucene-in-5-minutes.html"/>
@@ -24,52 +28,124 @@ import java.nio.file.Paths;
  */
 public class App {
 
-    private static CustomTFIDFSimilarity similarity = new CustomTFIDFSimilarity();
+	private static CustomTFIDFSimilarity similarity = new CustomTFIDFSimilarity();
 
-    private static void addDoc(IndexWriter w, String title, String isbn) throws IOException {
-        Document doc = new Document();
-        doc.add(new TextField("title", title, Field.Store.YES));
-        doc.add(new StringField("isbn", isbn, Field.Store.YES));
-        w.addDocument(doc);
-    }
+	public static void listFilesInCurrentDirectory() {
+		File currentDir = new File(".");
+		File[] files = currentDir.listFiles();
+		for (File file : files) {
+			if (file.isFile()) {
+				System.out.println(file.getName());
+			}
+		}
+	}
+	private static void addDoc(IndexWriter w, String title, String isbn) throws IOException {
+		Document doc = new Document();
+		doc.add(new TextField("title", title, Field.Store.YES));
+		// doc.add(new TextField("title", title, Field.Store.YES));
+		doc.add(new StringField("isbn", isbn, Field.Store.YES));
+		w.addDocument(doc);
+	}
 
-    static Directory index(StandardAnalyzer analyzer)  throws IOException {
-        // see: on-disk index
-        // Directory index = new NIOFSDirectory(Paths.get("<your file index location>"));
-        // see: in-memory index
-        Directory index = new ByteBuffersDirectory();
-        IndexWriterConfig config = new IndexWriterConfig(analyzer);
-        config.setSimilarity(similarity);
-        try (IndexWriter w = new IndexWriter(index, config)) {
-            // IndexWriter w = new IndexWriter(index, config);
-            addDoc(w, "Lucene in Action", "193398817");
-            addDoc(w, "Lucene for Dummies", "55320055Z");
-            addDoc(w, "Managing Gigabytes", "55063554A");
-            addDoc(w, "The Art of Computer Science", "9900333X");
-            // w.close();
-        }
-        return index;
-    }
+	static Directory index(StandardAnalyzer analyzer)  throws IOException {
+		// see: on-disk index
+		// Directory index = new NIOFSDirectory(Paths.get("<your file index location>"));
+		// see: in-memory index
+		// listFilesInCurrentDirectory();
+		Directory index = new ByteBuffersDirectory();
+		IndexWriterConfig config = new IndexWriterConfig(analyzer);
+		// config.setSimilarity(similarity);
+		try (IndexWriter w = new IndexWriter(index, config)) {
+			BufferedReader reader = new BufferedReader(new FileReader("data/ohsumed.88-91"));
+			String current_field = "";
+			String line;
+			Document doc = new Document();
+			while ((line = reader.readLine()) != null) {
+				String[] parts = line.split("\\s+");
+				String token = parts[0];
+				switch(token) {
+					case ".I":
+						if (!current_field.equals("")) {
+							// System.out.println("Adding to index.");
+							w.addDocument(doc);
+						}
+						// Start a new one when another Identifier shows up.
+						doc = new Document();
+						String id = parts[1];
+						current_field = id;
+						doc.add(new StringField("id", id, Field.Store.YES));
+						break;
+					case ".U":
+						String medlineID = reader.readLine();
+						// System.out.println("medLINE: " + medlineID);
+						doc.add(new StringField("medlineID", medlineID, Field.Store.YES));
+						break;
+					case ".S":
+						String source = reader.readLine();
+						// System.out.println("source: " + source);
+						// FIXME: Consider making this a TextField.
+						doc.add(new StringField("source", source, Field.Store.YES));
+						break;
+					case ".M":
+						String meshTerm = reader.readLine();
+						// System.out.println("meshTerm: " + meshTerm);
+						doc.add(new TextField("meshTerm", meshTerm, Field.Store.YES));
+						break;
+					case ".T":
+						String title = reader.readLine();
+						// System.out.println("title: " + title);
+						doc.add(new TextField("title", title, Field.Store.YES));
+						break;
+					case ".P":
+						String pubType = reader.readLine();
+						// System.out.println("pubType: " + pubType);
+						doc.add(new TextField("pubType", pubType, Field.Store.YES));
+						break;
+					case ".W":
+						String abstractText = reader.readLine();
+						// System.out.println("abstractText: " + abstractText);
+						doc.add(new TextField("abstractText", abstractText, Field.Store.YES));
+						break;
+					case ".A":
+						String author = reader.readLine();
+						// System.out.println("author: " + author);
+						doc.add(new TextField("author", author, Field.Store.YES));
+						break;
+				}
+			}
+			// Add the remaining last one.
+			w.addDocument(doc);
+			reader.close();
+			// IndexWriter w = new IndexWriter(index, config);
+			// addDoc(w, "Lucene in Action", "193398817");
+			// addDoc(w, "Lucene for Dummies", "55320055Z");
+			// addDoc(w, "Managing Gigabytes", "55063554A");
+			// addDoc(w, "The Art of Computer Science", "9900333X");
+			w.close();
+		}
+		return index;
+	}
 
-    public static void main(String[] args) throws IOException, ParseException {
-        StandardAnalyzer analyzer = new StandardAnalyzer();
+	public static void main(String[] args) throws IOException, ParseException {
+		StandardAnalyzer analyzer = new StandardAnalyzer();
 
-        String querystr = args.length > 0 ? args[0] : "lucene";
-        Query q = new QueryParser("title", analyzer).parse(querystr);
+		String querystr = args.length > 0 ? args[0] : "lucene";
+		Query q = new QueryParser("title", analyzer).parse(querystr);
 
-        int hitsPerPage = 10;
-        Directory index = index(analyzer);
-        IndexReader reader = DirectoryReader.open(index);
-        IndexSearcher searcher = new IndexSearcher(reader);
-        searcher.setSimilarity(similarity);
-        TopDocs docs = searcher.search(q, hitsPerPage);
-        ScoreDoc[] hits = docs.scoreDocs;
+		int hitsPerPage = 10;
+		Directory index = index(analyzer);
+		System.out.println(index.listAll());
+		IndexReader reader = DirectoryReader.open(index);
+		IndexSearcher searcher = new IndexSearcher(reader);
+		searcher.setSimilarity(similarity);
+		TopDocs docs = searcher.search(q, hitsPerPage);
+		ScoreDoc[] hits = docs.scoreDocs;
 
-        System.out.println("Found " + hits.length + " hits.");
-        for (int i = 0; i < hits.length; ++i) {
-            int docId = hits[i].doc;
-            Document d = searcher.getIndexReader().document(docId);
-            System.out.println((i + 1) + ". " + d.get("isbn") + "\t" + d.get("title"));
-        }
-    }
+		System.out.println("Found " + hits.length + " hits.");
+		for (int i = 0; i < hits.length; ++i) {
+			int docId = hits[i].doc;
+		 	Document d = searcher.getIndexReader().document(docId);
+		 	System.out.println((i + 1) + ". " + d.get("id") + "\t" + d.get("title"));
+		 }
+	}
 }
