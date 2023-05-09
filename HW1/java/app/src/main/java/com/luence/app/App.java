@@ -21,11 +21,17 @@ import org.apache.lucene.search.similarities.BooleanSimilarity;
 
 
 
+import java.util.List;
+import java.util.ArrayList;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.io.StringReader;
 
 /**
  * refer to <a href="https://www.lucenetutorial.com/lucene-in-5-minutes.html"/>
@@ -43,6 +49,42 @@ public class App {
 				System.out.println(file.getName());
 			}
 		}
+	}
+
+	public static String remove_stop_words(String text) throws IOException {
+		// TODO:
+		return text;
+	}
+	// Returns a list of query strings.
+	public static List<String> parse_queries(String filepath) {
+		List<String> queryStrings = new ArrayList<String>();
+
+		try {
+			BufferedReader reader = new BufferedReader(new FileReader(filepath));
+			String line;
+			// Match tags and blank lines.
+			Pattern pattern = Pattern.compile("<[^>]+>|^\\s*$");
+			while ((line = reader.readLine()) != null) {
+				// TODO: Consider storing the "OHSU" number and title. Need to return HashMap for this.
+
+				// Ignore lines with tags, and also blank lines.
+				Matcher matcher = pattern.matcher(line); 
+				if (!matcher.find()) {
+					String cleaned_line = remove_stop_words(line.trim().toLowerCase().replaceAll("[\\p{Punct}&&[^']]", " "));
+					String[] tokens = cleaned_line.split("\\s+");
+					String querystr = String.join(" AND ", tokens);
+					queryStrings.add(querystr);
+				}
+			}
+			reader.close();
+		}
+		catch (FileNotFoundException e) {
+			System.out.println("Query file not found.");
+		}
+		catch (IOException e) {
+			System.out.println("IO Exception when opening Query file.");
+		}
+		return queryStrings;
 	}
 	private static void addDoc(IndexWriter w, String title, String isbn) throws IOException {
 		Document doc = new Document();
@@ -129,24 +171,31 @@ public class App {
 	public static void main(String[] args) throws IOException, ParseException {
 		StandardAnalyzer analyzer = new StandardAnalyzer();
 
+
+		// FIXME: Possible mem leak or redundant class declaration, since the helper function already does this.
+		List<String> queryStrings = new ArrayList<String>();
 		String querystr = "";
 		if (args.length > 0) {
 			String[] tokens = args[0].split("\\s+");
 			querystr = String.join(" AND ", tokens);
+			queryStrings.add(querystr);
 		}
 		else {
-			querystr = "lucene";
+			queryStrings = parse_queries("data/query.ohsu.1-63");
 		}
-		System.out.println("querystr is: " + querystr);
+		System.out.println(queryStrings);
+		// for (String query: queryStrings) {
+		// 	System.out.println(query);
+		// }
 		// String querystr = args.length > 0 ? args[0] : "lucene";
-		
-		String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
-		Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
+		/*	
+			String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
+			Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
 
-		int hitsPerPage = Integer.MAX_VALUE;
-		Directory index = index(analyzer);
-		IndexReader reader = DirectoryReader.open(index);
-		IndexSearcher searcher = new IndexSearcher(reader);
+			int hitsPerPage = Integer.MAX_VALUE;
+			Directory index = index(analyzer);
+			IndexReader reader = DirectoryReader.open(index);
+			IndexSearcher searcher = new IndexSearcher(reader);
 		// searcher.setSimilarity(similarity);
 		searcher.setSimilarity(new BooleanSimilarity());
 		// searcher.setSimilarity(new TFIDFSimilarity());
@@ -156,14 +205,15 @@ public class App {
 		System.out.println("Found " + hits.length + " hits.");
 		// TODO: Make this 50 later.
 		for (int i = 0; i < 10; ++i) {
-			int docId = hits[i].doc;
-		 	Document d = searcher.getIndexReader().document(docId);
-		 	System.out.println((i + 1) + ". " + d.get("id") + "\t" + d.get("title"));
-			System.out.println("Doc ID: " + docId);
-			System.out.println("Score: " + hits[i].score);
-			System.out.println("\n");
-			// System.out.println("abstractText: " + d.get("abstractText") + "\n");
+		int docId = hits[i].doc;
+		Document d = searcher.getIndexReader().document(docId);
+		System.out.println((i + 1) + ". " + d.get("id") + "\t" + d.get("title"));
+		System.out.println("Doc ID: " + docId);
+		System.out.println("Score: " + hits[i].score);
+		System.out.println("\n");
+		// System.out.println("abstractText: " + d.get("abstractText") + "\n");
 		}
+		*/
 
 	}
 }
