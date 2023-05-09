@@ -129,7 +129,17 @@ public class App {
 	public static void main(String[] args) throws IOException, ParseException {
 		StandardAnalyzer analyzer = new StandardAnalyzer();
 
-		String querystr = args.length > 0 ? args[0] : "lucene";
+		String querystr = "";
+		if (args.length > 0) {
+			String[] tokens = args[0].split("\\s+");
+			querystr = String.join(" AND ", tokens);
+		}
+		else {
+			querystr = "lucene";
+		}
+		System.out.println("querystr is: " + querystr);
+		// String querystr = args.length > 0 ? args[0] : "lucene";
+		
 		String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
 		Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
 
@@ -153,6 +163,7 @@ public class App {
 			System.out.println("Score: " + hits[i].score);
 			System.out.println("\n");
 			// System.out.println("abstractText: " + d.get("abstractText") + "\n");
-		 }
+		}
+
 	}
 }
