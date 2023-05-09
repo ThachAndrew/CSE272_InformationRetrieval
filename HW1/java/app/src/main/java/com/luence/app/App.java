@@ -16,6 +16,10 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.search.similarities.BooleanSimilarity;
+// import org.apache.lucene.search.similarities.TFIDFSimilarity;
+
+
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -129,20 +133,26 @@ public class App {
 		String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
 		Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
 
-		int hitsPerPage = 10;
+		int hitsPerPage = Integer.MAX_VALUE;
 		Directory index = index(analyzer);
 		IndexReader reader = DirectoryReader.open(index);
 		IndexSearcher searcher = new IndexSearcher(reader);
-		searcher.setSimilarity(similarity);
+		// searcher.setSimilarity(similarity);
+		searcher.setSimilarity(new BooleanSimilarity());
+		// searcher.setSimilarity(new TFIDFSimilarity());
 		TopDocs docs = searcher.search(q, hitsPerPage);
 		ScoreDoc[] hits = docs.scoreDocs;
 
 		System.out.println("Found " + hits.length + " hits.");
-		for (int i = 0; i < hits.length; ++i) {
+		// TODO: Make this 50 later.
+		for (int i = 0; i < 10; ++i) {
 			int docId = hits[i].doc;
 		 	Document d = searcher.getIndexReader().document(docId);
 		 	System.out.println((i + 1) + ". " + d.get("id") + "\t" + d.get("title"));
-			System.out.println("abstractText: " + d.get("abstractText") + "\n");
+			System.out.println("Doc ID: " + docId);
+			System.out.println("Score: " + hits[i].score);
+			System.out.println("\n");
+			// System.out.println("abstractText: " + d.get("abstractText") + "\n");
 		 }
 	}
 }
