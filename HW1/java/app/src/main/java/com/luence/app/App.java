@@ -18,6 +18,7 @@ import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.search.similarities.BooleanSimilarity;
 // import org.apache.lucene.search.similarities.TFIDFSimilarity;
+import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.analysis.core.StopAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.CharArraySet;
@@ -43,7 +44,8 @@ import java.io.StringReader;
  */
 public class App {
 
-	private static CustomTFIDFSimilarity similarity = new CustomTFIDFSimilarity();
+	// private static CustomTFIDFSimilarity similarity = new CustomTFIDFSimilarity();
+	// private static TFSimilarity similarity = new TFSimilarity();
 
 	public static void listFilesInCurrentDirectory() {
 		File currentDir = new File(".");
@@ -73,18 +75,27 @@ public class App {
 			BufferedReader reader = new BufferedReader(new FileReader(filepath));
 			String line;
 			// Match tags and blank lines.
-			Pattern pattern = Pattern.compile("<[^>]+>|^\\s*$");
+			Pattern tagPattern = Pattern.compile("<[^>]+>|^\\s*$");
+			Pattern queryIDpattern = Pattern.compile("<num>.*:\\s*(.*)");
+			// Matcher queryIDmatcher = tagPattern.matcher(input);
 			while ((line = reader.readLine()) != null) {
 				// TODO: Consider storing the "OHSU" number and title. Need to return HashMap for this.
 
 				// Ignore lines with tags, and also blank lines.
-				Matcher matcher = pattern.matcher(line); 
-				if (!matcher.find()) {
+				Matcher tagMatcher = tagPattern.matcher(line); 
+				if (!tagMatcher.find()) {
 					String cleaned_line = line.trim().toLowerCase().replaceAll("[\\p{Punct}&&[^']]", " ");
 					List<String> tokens = Arrays.asList(cleaned_line.split("\\s+"));
 					tokens = removeStopwords(tokens);
-					String querystr = String.join(" AND ", tokens);
+					// String querystr = String.join(" AND ", tokens);
+					String querystr = String.join(" OR ", tokens);
 					queryStrings.add(querystr);
+				}
+				Matcher queryIDmatcher = queryIDpattern.matcher(line);
+				if (queryIDmatcher.find()) {
+					String textAfterColon = queryIDmatcher.group(1);
+					// TODO Add this capture to the proposed HashMap.
+					// System.out.println("Matched query id: " + textAfterColon);
 				}
 			}
 			reader.close();
@@ -188,16 +199,42 @@ public class App {
 		String querystr = "";
 		if (args.length > 0) {
 			String[] tokens = args[0].split("\\s+");
-			querystr = String.join(" AND ", tokens);
+			querystr = String.join(" OR ", tokens);
 			queryStrings.add(querystr);
 		}
 		else {
 			queryStrings = parse_queries("data/query.ohsu.1-63");
 		}
-		System.out.println(queryStrings);
-		// for (String query: queryStrings) {
-		// 	System.out.println(query);
-		// }
+
+		Directory index = index(analyzer);
+		IndexReader reader = DirectoryReader.open(index);
+		IndexSearcher searcher = new IndexSearcher(reader);
+		// searcher.setSimilarity(new BooleanSimilarity());
+		searcher.setSimilarity(new ClassicSimilarity());
+		// searcher.setSimilarity(new TFSimilarity());
+
+		String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
+		int hitsPerPage = 50;
+		int i = 0;
+		for (String query: queryStrings) {
+			if (i == 1)
+				break;
+			System.out.println("Searching query: " + query);
+			Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(query);
+			TopDocs docs = searcher.search(q, hitsPerPage);
+			ScoreDoc[] hits = docs.scoreDocs;
+			System.out.println("Found " + hits.length + " hits.");
+			for (int j = 0; j < hits.length; ++j) {
+				int docId = hits[j].doc;
+				Document d = searcher.getIndexReader().document(docId);
+				System.out.println((j + 1) + ". " + d.get("id") + "\t" + d.get("title"));
+				//System.out.println("Doc ID: " + docId);
+				System.out.println("medLine ID: " + d.get("medlineID"));
+				System.out.println("Score: " + hits[j].score);
+				System.out.println("\n");
+			}
+			i += 1;
+		}
 		// String querystr = args.length > 0 ? args[0] : "lucene";
 		/*	
 			String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
