@@ -18,11 +18,15 @@ import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.apache.lucene.search.similarities.BooleanSimilarity;
 // import org.apache.lucene.search.similarities.TFIDFSimilarity;
+import org.apache.lucene.analysis.core.StopAnalyzer;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
+import org.apache.lucene.analysis.CharArraySet;
 
 
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -51,9 +55,15 @@ public class App {
 		}
 	}
 
-	public static String remove_stop_words(String text) throws IOException {
-		// TODO:
-		return text;
+	public static List<String> removeStopwords(List<String> input) {
+		CharArraySet stopWords = EnglishAnalyzer.ENGLISH_STOP_WORDS_SET; 
+		List<String> output = new ArrayList<>();
+		for (String word : input) {
+			if (!stopWords.contains(word)) {
+				output.add(word);
+			}
+		}
+		return output;
 	}
 	// Returns a list of query strings.
 	public static List<String> parse_queries(String filepath) {
@@ -70,8 +80,9 @@ public class App {
 				// Ignore lines with tags, and also blank lines.
 				Matcher matcher = pattern.matcher(line); 
 				if (!matcher.find()) {
-					String cleaned_line = remove_stop_words(line.trim().toLowerCase().replaceAll("[\\p{Punct}&&[^']]", " "));
-					String[] tokens = cleaned_line.split("\\s+");
+					String cleaned_line = line.trim().toLowerCase().replaceAll("[\\p{Punct}&&[^']]", " ");
+					List<String> tokens = Arrays.asList(cleaned_line.split("\\s+"));
+					tokens = removeStopwords(tokens);
 					String querystr = String.join(" AND ", tokens);
 					queryStrings.add(querystr);
 				}
