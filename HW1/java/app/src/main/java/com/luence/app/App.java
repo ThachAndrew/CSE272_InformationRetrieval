@@ -11,6 +11,7 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
@@ -99,7 +100,7 @@ public class App {
 					case ".P":
 						String pubType = reader.readLine();
 						// System.out.println("pubType: " + pubType);
-						doc.add(new TextField("pubType", pubType, Field.Store.YES));
+						doc.add(new StringField("pubType", pubType, Field.Store.YES));
 						break;
 					case ".W":
 						String abstractText = reader.readLine();
@@ -116,11 +117,6 @@ public class App {
 			// Add the remaining last one.
 			w.addDocument(doc);
 			reader.close();
-			// IndexWriter w = new IndexWriter(index, config);
-			// addDoc(w, "Lucene in Action", "193398817");
-			// addDoc(w, "Lucene for Dummies", "55320055Z");
-			// addDoc(w, "Managing Gigabytes", "55063554A");
-			// addDoc(w, "The Art of Computer Science", "9900333X");
 			w.close();
 		}
 		return index;
@@ -130,11 +126,11 @@ public class App {
 		StandardAnalyzer analyzer = new StandardAnalyzer();
 
 		String querystr = args.length > 0 ? args[0] : "lucene";
-		Query q = new QueryParser("title", analyzer).parse(querystr);
+		String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
+		Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
 
 		int hitsPerPage = 10;
 		Directory index = index(analyzer);
-		System.out.println(index.listAll());
 		IndexReader reader = DirectoryReader.open(index);
 		IndexSearcher searcher = new IndexSearcher(reader);
 		searcher.setSimilarity(similarity);
@@ -146,6 +142,7 @@ public class App {
 			int docId = hits[i].doc;
 		 	Document d = searcher.getIndexReader().document(docId);
 		 	System.out.println((i + 1) + ". " + d.get("id") + "\t" + d.get("title"));
+			System.out.println("abstractText: " + d.get("abstractText") + "\n");
 		 }
 	}
 }
