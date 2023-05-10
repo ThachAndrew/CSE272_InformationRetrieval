@@ -37,6 +37,8 @@ import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.io.StringReader;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * refer to <a href="https://www.lucenetutorial.com/lucene-in-5-minutes.html"/>
@@ -68,34 +70,32 @@ public class App {
 		return output;
 	}
 	// Returns a list of query strings.
-	public static List<String> parse_queries(String filepath) {
-		List<String> queryStrings = new ArrayList<String>();
-
+	public static LinkedHashMap<String, String> parse_queries(String filepath) {
+		LinkedHashMap<String, String> queryStrings = new LinkedHashMap<>();
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader(filepath));
 			String line;
 			// Match tags and blank lines.
 			Pattern tagPattern = Pattern.compile("<[^>]+>|^\\s*$");
-			Pattern queryIDpattern = Pattern.compile("<num>.*:\\s*(.*)");
-			// Matcher queryIDmatcher = tagPattern.matcher(input);
+                        Pattern queryIDpattern = Pattern.compile("<num>.*:\\s*(.*)");
+			String queryNum = "";
+			String querystr = "";
 			while ((line = reader.readLine()) != null) {
-				// TODO: Consider storing the "OHSU" number and title. Need to return HashMap for this.
-
+				Matcher queryIDmatcher = queryIDpattern.matcher(line);
+				if (queryIDmatcher.find()) {
+					String textAfterColon = queryIDmatcher.group(1);
+					queryNum = textAfterColon;
+				}
 				// Ignore lines with tags, and also blank lines.
+				// TODO: Consider storing title.
 				Matcher tagMatcher = tagPattern.matcher(line); 
 				if (!tagMatcher.find()) {
 					String cleaned_line = line.trim().toLowerCase().replaceAll("[\\p{Punct}&&[^']]", " ");
 					List<String> tokens = Arrays.asList(cleaned_line.split("\\s+"));
 					tokens = removeStopwords(tokens);
 					// String querystr = String.join(" AND ", tokens);
-					String querystr = String.join(" OR ", tokens);
-					queryStrings.add(querystr);
-				}
-				Matcher queryIDmatcher = queryIDpattern.matcher(line);
-				if (queryIDmatcher.find()) {
-					String textAfterColon = queryIDmatcher.group(1);
-					// TODO Add this capture to the proposed HashMap.
-					// System.out.println("Matched query id: " + textAfterColon);
+					querystr = String.join(" OR ", tokens);
+					queryStrings.put(queryNum, querystr);
 				}
 			}
 			reader.close();
@@ -111,7 +111,6 @@ public class App {
 	private static void addDoc(IndexWriter w, String title, String isbn) throws IOException {
 		Document doc = new Document();
 		doc.add(new TextField("title", title, Field.Store.YES));
-		// doc.add(new TextField("title", title, Field.Store.YES));
 		doc.add(new StringField("isbn", isbn, Field.Store.YES));
 		w.addDocument(doc);
 	}
@@ -120,10 +119,8 @@ public class App {
 		// see: on-disk index
 		// Directory index = new NIOFSDirectory(Paths.get("<your file index location>"));
 		// see: in-memory index
-		// listFilesInCurrentDirectory();
 		Directory index = new ByteBuffersDirectory();
 		IndexWriterConfig config = new IndexWriterConfig(analyzer);
-		// config.setSimilarity(similarity);
 		try (IndexWriter w = new IndexWriter(index, config)) {
 			BufferedReader reader = new BufferedReader(new FileReader("data/ohsumed.88-91"));
 			String current_field = "";
@@ -195,17 +192,8 @@ public class App {
 
 
 		// FIXME: Possible mem leak or redundant class declaration, since the helper function already does this.
-		List<String> queryStrings = new ArrayList<String>();
-		String querystr = "";
-		if (args.length > 0) {
-			String[] tokens = args[0].split("\\s+");
-			querystr = String.join(" OR ", tokens);
-			queryStrings.add(querystr);
-		}
-		else {
-			queryStrings = parse_queries("data/query.ohsu.1-63");
-		}
-
+		LinkedHashMap<String, String> queryStrings = parse_queries("data/query.ohsu.1-63");
+		
 		Directory index = index(analyzer);
 		IndexReader reader = DirectoryReader.open(index);
 		IndexSearcher searcher = new IndexSearcher(reader);
@@ -216,6 +204,31 @@ public class App {
 		String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
 		int hitsPerPage = 50;
 		int i = 0;
+	        for (Map.Entry<String, String> query : queryStrings.entrySet()) {
+			if (i == 1)
+				break;
+			String queryID = query.getKey();
+			String querystr = query.getValue();
+			System.out.println("QueryID: " + queryID);
+			System.out.println("Querystr: " + querystr);
+
+			Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
+			TopDocs docs = searcher.search(q, hitsPerPage);
+			ScoreDoc[] hits = docs.scoreDocs;
+			System.out.println("Found " + hits.length + " hits.");
+			for (int j = 0; j < hits.length; ++j) {
+				int docId = hits[j].doc;
+				Document d = searcher.getIndexReader().document(docId);
+				System.out.println((j + 1) + ". " + d.get("id") + "\t" + d.get("title"));
+				//System.out.println("Doc ID: " + docId);
+				System.out.println("medLine ID: " + d.get("medlineID"));
+				System.out.println("Score: " + hits[j].score);
+				System.out.println("\n");
+			}
+
+			i += 1;
+		}
+		/*
 		for (String query: queryStrings) {
 			if (i == 1)
 				break;
@@ -235,6 +248,8 @@ public class App {
 			}
 			i += 1;
 		}
+	        */	
+
 		// String querystr = args.length > 0 ? args[0] : "lucene";
 		/*	
 			String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
