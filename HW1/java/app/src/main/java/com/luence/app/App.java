@@ -46,9 +46,6 @@ import java.util.Map;
  */
 public class App {
 
-	// private static CustomTFIDFSimilarity similarity = new CustomTFIDFSimilarity();
-	// private static TFSimilarity similarity = new TFSimilarity();
-
 	public static void listFilesInCurrentDirectory() {
 		File currentDir = new File(".");
 		File[] files = currentDir.listFiles();
@@ -69,6 +66,7 @@ public class App {
 		}
 		return output;
 	}
+
 	// Returns a list of query strings.
 	public static LinkedHashMap<String, String> parse_queries(String filepath) {
 		LinkedHashMap<String, String> queryStrings = new LinkedHashMap<>();
@@ -122,7 +120,8 @@ public class App {
 		Directory index = new ByteBuffersDirectory();
 		IndexWriterConfig config = new IndexWriterConfig(analyzer);
 		try (IndexWriter w = new IndexWriter(index, config)) {
-			BufferedReader reader = new BufferedReader(new FileReader("data/ohsumed.88-91"));
+			// BufferedReader reader = new BufferedReader(new FileReader("data/ohsumed.88-91"));
+			BufferedReader reader = new BufferedReader(new FileReader("data/ohsumed.87"));
 			String current_field = "";
 			String line;
 			Document doc = new Document();
@@ -153,12 +152,12 @@ public class App {
 						doc.add(new StringField("source", source, Field.Store.YES));
 						break;
 					case ".M":
-						String meshTerm = reader.readLine();
+						String meshTerm = reader.readLine().toLowerCase().replaceAll("[\\p{Punct}&&[^']]", " ");
 						// System.out.println("meshTerm: " + meshTerm);
 						doc.add(new TextField("meshTerm", meshTerm, Field.Store.YES));
 						break;
 					case ".T":
-						String title = reader.readLine();
+						String title = reader.readLine().toLowerCase().replaceAll("[\\p{Punct}&&[^']]", " ");
 						// System.out.println("title: " + title);
 						doc.add(new TextField("title", title, Field.Store.YES));
 						break;
@@ -168,7 +167,7 @@ public class App {
 						doc.add(new StringField("pubType", pubType, Field.Store.YES));
 						break;
 					case ".W":
-						String abstractText = reader.readLine();
+						String abstractText = reader.readLine().toLowerCase().replaceAll("[\\p{Punct}&&[^']]", " ");
 						// System.out.println("abstractText: " + abstractText);
 						doc.add(new TextField("abstractText", abstractText, Field.Store.YES));
 						break;
@@ -200,86 +199,23 @@ public class App {
 		// searcher.setSimilarity(new BooleanSimilarity());
 		searcher.setSimilarity(new ClassicSimilarity());
 		// searcher.setSimilarity(new TFSimilarity());
+		// searcher.setSimilarity(new CustomTFIDFSimilarity());
 
 		String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
 		int hitsPerPage = 50;
 		int i = 0;
 	        for (Map.Entry<String, String> query : queryStrings.entrySet()) {
-			// if (i == 1)
-			//	break;
 			String queryID = query.getKey();
 			String querystr = query.getValue();
-			// System.out.println("QueryID: " + queryID);
-			// System.out.println("Querystr: " + querystr);
-
 			Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
 			TopDocs docs = searcher.search(q, hitsPerPage);
 			ScoreDoc[] hits = docs.scoreDocs;
-			// System.out.println("Found " + hits.length + " hits.");
 			for (int j = 0; j < hits.length; ++j) {
 				int docId = hits[j].doc;
 				Document d = searcher.getIndexReader().document(docId);
-				// System.out.println((j + 1) + ". " + d.get("id") + "\t" + d.get("title"));
-				// System.out.println("Doc ID: " + docId);
-				// System.out.println("medLine ID: " + d.get("medlineID"));
-				// System.out.println("Score: " + hits[j].score);
-				// System.out.println("\n");
-				// Print as: QueryID Q0 DocID Rank Score RunID
 				int rank = j + 1;
 				System.out.println(queryID + " Q0 " + d.get("medlineID") + " " + rank + " " + hits[j].score + " TFIDF" );
 			}
-
-			i += 1;
 		}
-		/*
-		for (String query: queryStrings) {
-			if (i == 1)
-				break;
-			System.out.println("Searching query: " + query);
-			Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(query);
-			TopDocs docs = searcher.search(q, hitsPerPage);
-			ScoreDoc[] hits = docs.scoreDocs;
-			System.out.println("Found " + hits.length + " hits.");
-			for (int j = 0; j < hits.length; ++j) {
-				int docId = hits[j].doc;
-				Document d = searcher.getIndexReader().document(docId);
-				System.out.println((j + 1) + ". " + d.get("id") + "\t" + d.get("title"));
-				//System.out.println("Doc ID: " + docId);
-				System.out.println("medLine ID: " + d.get("medlineID"));
-				System.out.println("Score: " + hits[j].score);
-				System.out.println("\n");
-			}
-			i += 1;
-		}
-	        */	
-
-		// String querystr = args.length > 0 ? args[0] : "lucene";
-		/*	
-			String[] fields_to_search = {"title", "abstractText", "meshTerm", "author"};
-			Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
-
-			int hitsPerPage = Integer.MAX_VALUE;
-			Directory index = index(analyzer);
-			IndexReader reader = DirectoryReader.open(index);
-			IndexSearcher searcher = new IndexSearcher(reader);
-		// searcher.setSimilarity(similarity);
-		searcher.setSimilarity(new BooleanSimilarity());
-		// searcher.setSimilarity(new TFIDFSimilarity());
-		TopDocs docs = searcher.search(q, hitsPerPage);
-		ScoreDoc[] hits = docs.scoreDocs;
-
-		System.out.println("Found " + hits.length + " hits.");
-		// TODO: Make this 50 later.
-		for (int i = 0; i < 10; ++i) {
-		int docId = hits[i].doc;
-		Document d = searcher.getIndexReader().document(docId);
-		System.out.println((i + 1) + ". " + d.get("id") + "\t" + d.get("title"));
-		System.out.println("Doc ID: " + docId);
-		System.out.println("Score: " + hits[i].score);
-		System.out.println("\n");
-		// System.out.println("abstractText: " + d.get("abstractText") + "\n");
-		}
-		*/
-
 	}
 }
