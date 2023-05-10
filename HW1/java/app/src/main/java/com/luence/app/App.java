@@ -205,25 +205,28 @@ public class App {
 		int hitsPerPage = 50;
 		int i = 0;
 	        for (Map.Entry<String, String> query : queryStrings.entrySet()) {
-			if (i == 1)
-				break;
+			// if (i == 1)
+			//	break;
 			String queryID = query.getKey();
 			String querystr = query.getValue();
-			System.out.println("QueryID: " + queryID);
-			System.out.println("Querystr: " + querystr);
+			// System.out.println("QueryID: " + queryID);
+			// System.out.println("Querystr: " + querystr);
 
 			Query q = new MultiFieldQueryParser(fields_to_search, analyzer).parse(querystr);
 			TopDocs docs = searcher.search(q, hitsPerPage);
 			ScoreDoc[] hits = docs.scoreDocs;
-			System.out.println("Found " + hits.length + " hits.");
+			// System.out.println("Found " + hits.length + " hits.");
 			for (int j = 0; j < hits.length; ++j) {
 				int docId = hits[j].doc;
 				Document d = searcher.getIndexReader().document(docId);
-				System.out.println((j + 1) + ". " + d.get("id") + "\t" + d.get("title"));
-				//System.out.println("Doc ID: " + docId);
-				System.out.println("medLine ID: " + d.get("medlineID"));
-				System.out.println("Score: " + hits[j].score);
-				System.out.println("\n");
+				// System.out.println((j + 1) + ". " + d.get("id") + "\t" + d.get("title"));
+				// System.out.println("Doc ID: " + docId);
+				// System.out.println("medLine ID: " + d.get("medlineID"));
+				// System.out.println("Score: " + hits[j].score);
+				// System.out.println("\n");
+				// Print as: QueryID Q0 DocID Rank Score RunID
+				int rank = j + 1;
+				System.out.println(queryID + " Q0 " + d.get("medlineID") + " " + rank + " " + hits[j].score + " TFIDF" );
 			}
 
 			i += 1;
